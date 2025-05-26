@@ -6,7 +6,7 @@
 #include <thread>
 #include <iostream>
 
-namespace hft::common {
+namespace infra {
 
     inline auto setThreadAffinity(int coreId) noexcept {
         #ifdef __linux__
