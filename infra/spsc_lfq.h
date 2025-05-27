@@ -1,6 +1,6 @@
 #pragma once
 
-#include "macro.h"
+#include "common.h"
 
 #include <vector>
 #include <atomic>
