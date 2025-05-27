@@ -39,10 +39,13 @@ int main() {
     Foo* pt = fooAlloc.alloc(std::move("PT"));
     std::cout << fooAlloc.nextIdx() << '\n';
     std::cout << fooAlloc.capacity() << '\n';
-    std::cout << it->ca_ << ',' << es->ca_ << ',' << !pt << '\n';
+    std::cout << *it << ',' << *es << ',' << !pt << '\n';
     fooAlloc.free(it, true);
+    pt = fooAlloc.alloc(std::move("DE"));
+    std::cout << *pt << '\n';
     es->~Foo();
     fooAlloc.free(es);
+    fooAlloc.free(pt, true);
 
     infra::SpscQueue<Foo> ssq(4);
     for (size_t i = 0; i < 6; ++i) ssq.enqueue({std::to_string(i).c_str()});

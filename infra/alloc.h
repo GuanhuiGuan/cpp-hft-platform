@@ -52,6 +52,7 @@ namespace infra {
             // reset block
             blocks_[idx].used_ = false;
             if (destroy) blocks_[idx].data_.~T();
+            updateNextFreeIdx();
         }
 
         size_t capacity() const {return blocks_.size();}
