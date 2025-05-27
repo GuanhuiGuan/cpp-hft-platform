@@ -1,20 +1,30 @@
 #include "thread_util.h"
 #include "alloc.h"
+#include "spsc_lfq.h"
 
 #include <atomic>
 #include <cstring>
 
 struct Foo {
     char ca_[3];
-    Foo() {std::cout << "creating Foo()\n";}
+    Foo() {
+        // std::cout << "creating Foo()\n";
+    }
     Foo(const char* ca) {
-        std::cout << "creating Foo " << ca << '\n';
+        // std::cout << "creating Foo " << ca << '\n';
         strcpy(ca_, ca);
     }
-    ~Foo() {std::cout << "destroying Foo " << ca_ << '\n';}
+    ~Foo() {
+        // std::cout << "destroying Foo " << ca_ << '\n';
+    }
 };
+std::ostream& operator<<(std::ostream& os, const Foo& f) {
+    return os << "Foo{" << f.ca_ << '}';
+}
 
 int main() {
+
+    std::cout << std::boolalpha;
 
     std::atomic<int> res;
     auto t = infra::startThread(0, "testThread", [&res](int x, int y){res.store(x + y);}, 10, 20);
@@ -29,11 +39,17 @@ int main() {
     Foo* pt = fooAlloc.alloc(std::move("PT"));
     std::cout << fooAlloc.nextIdx() << '\n';
     std::cout << fooAlloc.capacity() << '\n';
-    std::cout << it->ca_ << ',' << es->ca_ << ',' << pt->ca_ << '\n';
+    std::cout << it->ca_ << ',' << es->ca_ << ',' << !pt << '\n';
     fooAlloc.free(it, true);
     es->~Foo();
     fooAlloc.free(es);
-    fooAlloc.free(pt, true);
+
+    infra::SpscQueue<Foo> ssq(4);
+    for (size_t i = 0; i < 6; ++i) ssq.enqueue({std::to_string(i).c_str()});
+    std::cout << *ssq.atRead() << '\n';
+    Foo x;
+    while (ssq.size() > 0) std::cout << ssq.dequeue(x) << ':' << x;
+    std::cout << std::endl;
 
     return 0;
 }

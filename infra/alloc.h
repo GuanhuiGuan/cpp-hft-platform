@@ -30,7 +30,9 @@ namespace infra {
 
         template<typename... Args>
         T* alloc(Args&&... args) {
-            ASSERT(nextFreeIdx_ >= 0 && nextFreeIdx_ < blocks_.size() && !blocks_[nextFreeIdx_].used_, "invalid nextFreeIdx_");
+            if(nextFreeIdx_ < 0 || nextFreeIdx_ >= blocks_.size() || blocks_[nextFreeIdx_].used_) {
+                return nullptr;
+            }
             
             // create entity
             const size_t retIdx = nextFreeIdx_;
@@ -56,16 +58,19 @@ namespace infra {
         size_t nextIdx() const {return nextFreeIdx_;}
 
     private:
-        void updateNextFreeIdx() {
+        auto updateNextFreeIdx() {
             const size_t startIdx = nextFreeIdx_;
             while (blocks_[nextFreeIdx_].used_) {
                 ++nextFreeIdx_;
                 [[unlikely]] if (nextFreeIdx_ == blocks_.size()) nextFreeIdx_ = 0;
                 [[unlikely]] if (nextFreeIdx_ == startIdx) { // out of mem
-                    nextFreeIdx_ = blocks_.size();
-                    blocks_.resize(2 * blocks_.size());
+                    return false;
+                    // if resized, the existing ptrs will be invalid
+                    // nextFreeIdx_ = blocks_.size();
+                    // blocks_.resize(2 * blocks_.size());
                 }
             }
+            return true;
         }
     };
 }
