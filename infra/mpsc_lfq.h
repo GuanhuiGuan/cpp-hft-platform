@@ -20,7 +20,7 @@ namespace infra {
         MpscQueue& operator=(const MpscQueue&) = delete;
         MpscQueue& operator=(MpscQueue&&) = delete;
 
-        auto dequeue(long& x) {
+        auto dequeue(T& x) {
             if (empty()) return false;
             size_t r = read_.load(std::memory_order_relaxed);
             x = data_[r];

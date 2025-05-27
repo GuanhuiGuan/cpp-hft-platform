@@ -2,6 +2,7 @@
 #include "alloc.h"
 #include "spsc_lfq.h"
 #include "mpsc_lfq.h"
+#include "log/logger.h"
 
 #include <atomic>
 #include <cstring>
@@ -96,6 +97,9 @@ int main() {
     std::cout << std::endl;
 
     testMpsc(20, 100);
+
+    infra::Logger logger("log/app.log");
+    logger.log(infra::LogType::INFO, "Hello there % % % %%", 100, "DV", 66.666);
 
     return 0;
 }
