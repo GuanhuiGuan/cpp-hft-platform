@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mpsc_lfq.h"
+#include "../spsc_lfq.h"
 #include "../thread_util.h"
 
 #include <fstream>
@@ -14,7 +14,7 @@ namespace infra {
         WARN,
         ERROR
     };
-    static std::string LOG_TYPE_NAMES[] {"INFO", "WARN", "ERROR"};
+    const static std::string LOG_TYPE_NAMES[] {"INFO", "WARN", "ERROR"};
 
     namespace {
         enum class EntityType : int8_t {
@@ -55,15 +55,29 @@ namespace infra {
         };
     }
 
+    template<typename L>
+    auto funcFlushBuffer(L& logger) {
+        Entity entity;
+        while (logger.running()) {
+            logger.flushBufferOnce(entity);
+            std::this_thread::sleep_for(10ms);
+        }
+    }
+
     class Logger {
     public:
-        auto flushBuffer() {
-            while (running_) {
-                Entity entity;
+        auto flushBufferOnce(Entity& entity) {
+            for (size_t i = 0; i < buffer_.size(); ++i) {
                 if (buffer_.dequeue(entity)) {
                     write(entity);
-                    file_.flush();
                 }
+            }
+            file_.flush();
+        }
+        auto flushBuffer() {
+            Entity entity;
+            while (running_) {
+                flushBufferOnce(entity);
                 std::this_thread::sleep_for(10ms);
             }
         }
@@ -71,23 +85,24 @@ namespace infra {
         explicit Logger(const std::string& filename) : filename_{filename}, buffer_{BUFFER_CAP}, running_{true} {
             file_.open(filename);
             ASSERT(file_.is_open(), "Failed to open file " + filename);
-            consumer_ = std::unique_ptr<std::thread>(startThread(-1, "logConsumer", [this]() {flushBuffer();}));
+            // consumer_ = startThreadUptr(-1, filename, [this]() { flushBuffer(); }); WHY the consumer doesn't consume?
+            consumer_ = startThreadUptr(-1, filename, funcFlushBuffer<Logger>, *this);
             ASSERT(consumer_ != nullptr, "Failed to start log consumer thread");
-            std::cerr << "Started logger " << filename << '\n';
+            std::cerr << "Started logger " << filename << std::endl;
         }
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
         Logger(Logger&&) = delete;
         Logger& operator=(Logger&&) = delete;
         ~Logger() noexcept {
-            std::cerr << "Terminating and flushing logger " << filename_ << '\n';
+            std::cerr << "Terminating and flushing logger " << filename_ << std::endl;
             while (!buffer_.empty()) {
                 std::this_thread::sleep_for(100ms);
             }
             running_ = false;
             consumer_->join();
             file_.close();
-            std::cerr << "Logger " << filename_ << " terminated\n";
+            std::cerr << "Logger " << filename_ << " terminated" << std::endl;
         }
 
         template<typename... Args>
@@ -100,10 +115,12 @@ namespace infra {
             internalLog(fmt, args...);
             enqueue('\n');
         }
+
+        bool running() const {return running_;}
         
     private:
         const std::string filename_;
-        MpscQueue<Entity> buffer_;
+        SpscQueue<Entity> buffer_;
         std::atomic_bool running_;
         std::ofstream file_;
         std::unique_ptr<std::thread> consumer_;

@@ -28,7 +28,7 @@ namespace infra {
         }
 
         auto dequeue(T& x) {
-            if (size() == 0) return false;
+            if (empty()) return false;
             size_t r = read_.load(std::memory_order_relaxed);
             x = data_[r];
             read_.store(mod(r + 1), std::memory_order_relaxed);
@@ -41,6 +41,7 @@ namespace infra {
 
         // if write_ laps read_, then size_ won't be correct
         inline size_t size() const {return size_.load(std::memory_order_relaxed);}
+        inline bool empty() const {return size() == 0;}
 
     private:
         std::vector<T> data_;

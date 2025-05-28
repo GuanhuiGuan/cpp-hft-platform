@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <iostream>
+#include <memory>
 
 namespace infra {
 
@@ -27,8 +28,13 @@ namespace infra {
                 exit(EXIT_FAILURE);
             }
             std::cerr << "Affinity set for " << name << " " << pthread_self() << " to " << coreId << std::endl;
-            std::forward<F>(func)(std::forward<Args>(args)...);
+            std::forward<F>(func)((std::forward<Args>(args))...);
         });
         return t;
+    }
+
+    template<typename F, typename... Args>
+    inline std::unique_ptr<std::thread> startThreadUptr(int coreId, const std::string& name, F&& func, Args&&... args) {
+        return std::unique_ptr<std::thread>(startThread(coreId, name, std::forward<F>(func), std::forward<Args>(args)...));
     }
 }

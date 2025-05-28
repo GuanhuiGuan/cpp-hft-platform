@@ -23,21 +23,21 @@ namespace infra {
         auto dequeue(T& x) {
             if (empty()) return false;
             size_t r = read_.load(std::memory_order_relaxed);
-            x = data_[r];
-            read_.store(mod(r + 1), std::memory_order_relaxed);
+            x = data_[mod(r)];
+            read_.store(r + 1, std::memory_order_relaxed);
             size_.fetch_sub(1, std::memory_order_relaxed);
             return true;
         }
 
         auto enqueue(T&& x) {
             size_t w = write_.load(std::memory_order_acquire);
-            while (!write_.compare_exchange_weak(w, mod(w + 1), std::memory_order_release));
-            data_[w] = std::move(x);
+            while (!write_.compare_exchange_weak(w, w + 1, std::memory_order_release));
+            data_[mod(w)] = std::move(x);
             size_.fetch_add(1, std::memory_order_seq_cst);
         }
 
         bool empty() const {return size() == 0;}
-        size_t size() const {return size_.load(std::memory_order_seq_cst);}
+        size_t size() const {return size_;}
     private:
         std::vector<T> data_;
         size_t mask_;
