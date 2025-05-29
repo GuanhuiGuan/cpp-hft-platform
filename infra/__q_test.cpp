@@ -18,7 +18,7 @@ void testMpsc(int numProducer, int loop) {
             }
         }
     };
-    std::unique_ptr<std::thread> consumer (infra::startThreadUptr(0, "consumer", runConsumer));
+    std::unique_ptr<std::thread> consumer (infra::startThread(0, "consumer", runConsumer));
 
     auto runProducer = [&msq, loop](long i) {
         for (int l {0}; l < loop; ++l) {

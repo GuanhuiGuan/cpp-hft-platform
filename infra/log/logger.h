@@ -66,7 +66,7 @@ namespace infra {
 
     class Logger {
     public:
-        auto flushBufferOnce(Entity& entity) {
+        void flushBufferOnce(Entity& entity) {
             for (size_t i = 0; i < buffer_.size(); ++i) {
                 if (buffer_.dequeue(entity)) {
                     write(entity);
@@ -74,7 +74,7 @@ namespace infra {
             }
             file_.flush();
         }
-        auto flushBuffer() {
+        void flushBuffer() {
             Entity entity;
             while (running_) {
                 flushBufferOnce(entity);
@@ -85,8 +85,8 @@ namespace infra {
         explicit Logger(const std::string& filename) : filename_{filename}, buffer_{BUFFER_CAP}, running_{true} {
             file_.open(filename);
             ASSERT(file_.is_open(), "Failed to open file " + filename);
-            // consumer_ = startThreadUptr(-1, filename, [this]() { flushBuffer(); }); WHY the consumer doesn't consume?
-            consumer_ = startThreadUptr(-1, filename, funcFlushBuffer<Logger>, *this);
+            consumer_ = startThread(-1, filename, [this]() { flushBuffer(); });
+            // consumer_ = startThread(-1, filename, funcFlushBuffer<Logger>, *this);
             ASSERT(consumer_ != nullptr, "Failed to start log consumer thread");
             std::cerr << "Started logger " << filename << std::endl;
         }
@@ -121,7 +121,7 @@ namespace infra {
     private:
         const std::string filename_;
         SpscQueue<Entity> buffer_;
-        std::atomic_bool running_;
+        volatile bool running_;
         std::ofstream file_;
         std::unique_ptr<std::thread> consumer_;
 

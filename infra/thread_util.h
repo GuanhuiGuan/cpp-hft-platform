@@ -22,19 +22,15 @@ namespace infra {
 
     template<typename F, typename... Args>
     inline auto startThread(int coreId, const std::string& name, F&& func, Args&&... args) {
-        auto t = new std::thread([&]() {
+        auto t = std::make_unique<std::thread>([&]() {
             if (coreId >= 0 && !setThreadAffinity(coreId)) {
                 std::cerr << "Failed to set affinity for " << name << " " << pthread_self() << " to " << coreId << std::endl;
                 exit(EXIT_FAILURE);
             }
             std::cerr << "Affinity set for " << name << " " << pthread_self() << " to " << coreId << std::endl;
-            std::forward<F>(func)((std::forward<Args>(args))...);
+            func(std::forward<Args>(args)...);
         });
+        std::this_thread::sleep_for(100ms); // just in case referred objects in other threads aren't ready
         return t;
-    }
-
-    template<typename F, typename... Args>
-    inline std::unique_ptr<std::thread> startThreadUptr(int coreId, const std::string& name, F&& func, Args&&... args) {
-        return std::unique_ptr<std::thread>(startThread(coreId, name, std::forward<F>(func), std::forward<Args>(args)...));
     }
 }

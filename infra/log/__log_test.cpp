@@ -19,7 +19,8 @@ int main() {
 
     logger = new infra::Logger("logs/test.log");
 
-    while (true) {
+    int counter = 60;
+    while (counter-- > 0) {
         logger->log(infra::LogType::INFO, "Hello there % % % %%", 100, "DV", 66.666);
         std::this_thread::sleep_for(1s);
     }
