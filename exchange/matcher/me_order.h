@@ -1,6 +1,9 @@
 #pragma once
 
-#include "infra/types.h"
+#include "../../infra/types.h"
+#include "../../infra/log/logger.h"
+#include "../../infra/alloc.h"
+#include "../../infra/spsc_lfq.h"
 
 #include <array>
 
@@ -63,5 +66,5 @@ namespace exchange {
 
     using OrderMap = std::array<MEOrder*, MAX_ORDER_IDS>;
 
-    using CidOidMap = std::array<OrderMap, MAX_NUM_CLIENTS>;
+    using CidOidMap = std::array<OrderMap*, MAX_NUM_CLIENTS>;
 }

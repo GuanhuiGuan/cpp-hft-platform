@@ -5,16 +5,16 @@
 
 using namespace infra;
 
-Logger* logger = new Logger("../logs/app.log");
+Logger* logger {nullptr};
 
 void sigHandler(int sig) {
     std::cerr << "start of sigHandler: signal=" << sig << std::endl;
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(3s);
     if (logger) {
         delete logger;
         logger = nullptr;
     }
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(2s);
     std::cerr << "end of sigHandler: signal=" << sig << std::endl;
     std::exit(EXIT_SUCCESS);
 }
@@ -22,11 +22,15 @@ void sigHandler(int sig) {
 int main() {
     // graceful shutdown
     std::signal(SIGINT, sigHandler);
+
+    logger = new Logger("logs/app.log");
     
     exchange::MatchEngine me;
     exchange::MEOrderBook ob(InsId(0), logger, &me);
 
-    std::this_thread::sleep_for(2s);
+    while (true) {
+        std::this_thread::sleep_for(1s);
+    }
 
     return 0;
 }

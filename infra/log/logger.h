@@ -95,14 +95,7 @@ namespace infra {
         Logger(Logger&&) = delete;
         Logger& operator=(Logger&&) = delete;
         ~Logger() noexcept {
-            std::cerr << "Terminating and flushing logger " << filename_ << std::endl;
-            while (!buffer_.empty()) {
-                std::this_thread::sleep_for(100ms);
-            }
-            running_ = false;
-            consumer_->join();
-            file_.close();
-            std::cerr << "Logger " << filename_ << " terminated" << std::endl;
+            stop();
         }
 
         template<typename... Args>
@@ -117,6 +110,19 @@ namespace infra {
         }
 
         bool running() const {return running_;}
+
+        void stop() {
+            std::cerr << "Terminating and flushing logger " << filename_ << std::endl;
+            if (running_) {
+                while (!buffer_.empty()) {
+                std::this_thread::sleep_for(100ms);
+                }
+                running_ = false;
+                consumer_->join();
+                file_.close();
+            }
+            std::cerr << "Logger " << filename_ << " terminated" << std::endl;
+        }
         
     private:
         const std::string filename_;

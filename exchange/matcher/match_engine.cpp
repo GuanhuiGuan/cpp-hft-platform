@@ -2,5 +2,4 @@
 
 namespace exchange {
 
-    MatchEngine::MatchEngine() {}
 }
