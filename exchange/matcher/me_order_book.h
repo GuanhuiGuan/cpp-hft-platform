@@ -14,10 +14,10 @@ namespace exchange {
         MEOrderAtPrice* bids_;
         MEOrderAtPrice* asks_;
 
-        Allocator<MEOrderAtPrice> orderAtPriceMemPool_ = Allocator<MEOrderAtPrice>(256);
+        Allocator<MEOrderAtPrice> orderAtPriceMemPool_;
         MEOrderAtPriceMap orderAtPriceMap_;
 
-        Allocator<MEOrder> orderMemPool_ = Allocator<MEOrder>(1024);
+        Allocator<MEOrder> orderMemPool_;
         CidOidMap cidOidMap_;
         MarketOrderId nextMarketOrderId_ {0};
     public:
@@ -35,6 +35,8 @@ namespace exchange {
     private:
         void addOrder(MEOrder* order);
         void addOrderAtPrice(MEOrderAtPrice* op);
+
+        void match(MEOrder* order);
 
         auto priceToIdx(Price p) const {return p % orderAtPriceMap_.max_size();}
     };
@@ -76,6 +78,12 @@ namespace exchange {
     }
 
     void MEOrderBook::addOrder(MEOrder* order) {
+        match(order);
+        if (!order->qty_) {
+            orderMemPool_.free(order);
+            return;
+        }
+
         cidOidMap_.at(order->clientId_)->at(order->clientOrderId_) = order;
 
         MEOrderAtPrice* op = orderAtPriceMap_.at(priceToIdx(order->price_));
@@ -111,6 +119,29 @@ namespace exchange {
             op->prev_ = prev;
             if (curr) curr->prev_ = op;
             op->next_ = curr;
+        }
+    }
+
+    void MEOrderBook::match(MEOrder* order) {
+        bool isBuy = Side::BID == order->side_;
+        MEOrderAtPrice* bestOppo = isBuy ? asks_ : bids_;
+        while (order->qty_ > 0) {
+            if (bestOppo && isBuy ? order->price_ < bestOppo->price_ : order->price_ > bestOppo->price_) {
+                break;
+            }
+            while (bestOppo && !bestOppo->orders_) {
+                orderAtPriceMap_[bestOppo->price_] = nullptr;
+                auto next = bestOppo->next_;
+                orderAtPriceMemPool_.free(bestOppo);
+                bestOppo = next;
+            }
+            if (!bestOppo) break;
+            auto qty = std::min(order->qty_, bestOppo->orders_->qty_);
+            bestOppo->orders_->qty_ -= qty;
+            order->qty_ -= qty;
+
+            std::cout << "matched " << (isBuy ? "BID" : "ASK") << " qty=" << qty 
+                << " orderPrice=" << order->price_ << " bookPrice=" << bestOppo->price_ << std::endl;
         }
     }
 }

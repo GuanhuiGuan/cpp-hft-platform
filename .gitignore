@@ -1,4 +1,5 @@
 **/*.out
+main
 **/*.DSYM
 **/.vscode
 **/logs

@@ -28,6 +28,11 @@ int main() {
     exchange::MatchEngine me;
     exchange::MEOrderBook ob(InsId(0), logger, &me);
 
+    ob.add(1, 100, Side::BID, 10000, 10);
+    ob.add(1, 101, Side::BID, 10001, 10);
+    ob.add(2, 102, Side::ASK, 10002, 5);
+    ob.add(2, 103, Side::ASK, 10000, 15);
+
     while (true) {
         std::this_thread::sleep_for(1s);
     }

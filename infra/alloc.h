@@ -17,7 +17,7 @@ namespace infra {
         size_t nextFreeIdx_;
 
     public:
-        explicit Allocator(size_t size) : blocks_(size > 0 ? size : 1, {T(), false}), nextFreeIdx_{0} {
+        Allocator(size_t size) : blocks_(size > 0 ? size : 1, {T(), false}), nextFreeIdx_{0} {
             std::cerr << "new allocator of size " << blocks_.size() << std::endl;
         }
         Allocator(const Allocator&) = delete;
