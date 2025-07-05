@@ -14,12 +14,21 @@ namespace match {
         return os << ((Side::BID == side) ? "BID" : "ASK");
     }
 
+    enum class OrderType {
+        GFD, // good for day
+        IOC, // insert of cancel
+    };
+    std::ostream& operator<<(std::ostream& os, OrderType type) {
+        return os << ((OrderType::GFD == type) ? "GFD" : "IOC");
+    }
+
     struct Order {
         uint64_t id_;
         uint64_t price_;
         uint64_t qty_;
         Side side_;
-        Order(uint64_t id, uint64_t p,  uint64_t q, Side s) : id_{id}, price_{p}, qty_{q}, side_{s} {}
+        OrderType type_;
+        Order(uint64_t id, uint64_t p,  uint64_t q, Side s, OrderType t) : id_{id}, price_{p}, qty_{q}, side_{s}, type_{t} {}
     };
     std::ostream& operator<<(std::ostream& os, const Order& order) {
         return os << "[id=" << order.id_ << " price=" << order.price_ << " qty=" << order.qty_ << " side=" << order.side_ << "]";
@@ -45,10 +54,10 @@ namespace match {
             destroyBook(asks_);
         }
         
-        auto addOrder(uint64_t id, Side side, uint64_t price, uint64_t qty) -> void {
-            Order* order = new Order(id, price, qty, side);
+        auto addOrder(uint64_t id, Side side, OrderType type, uint64_t price, uint64_t qty) -> void {
+            Order* order = new Order(id, price, qty, side, type);
             match(order);
-            if (order->qty_ == 0) return;
+            if (order->qty_ == 0 || OrderType::IOC == order->type_) return;
             // add to corresponding side
             bool isBid = Side::BID == side;
             std::list<PriceLvl>& best = isBid ? bids_ : asks_; // NOTICE! use reference!!!
