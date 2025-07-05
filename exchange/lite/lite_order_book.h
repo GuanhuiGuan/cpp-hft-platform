@@ -4,6 +4,7 @@
 #include <list>
 #include <iostream>
 #include <cstdio>
+#include <optional>
 
 namespace match {
     enum class Side {
@@ -53,27 +54,39 @@ namespace match {
             destroyBook(bids_);
             destroyBook(asks_);
         }
-        
-        auto addOrder(uint64_t id, Side side, OrderType type, uint64_t price, uint64_t qty) -> void {
-            Order* order = new Order(id, price, qty, side, type);
+
+        auto addOrder(Order* order) -> void {
             match(order);
             if (order->qty_ == 0 || OrderType::IOC == order->type_) return;
             // add to corresponding side
-            bool isBid = Side::BID == side;
+            bool isBid = Side::BID == order->side_;
             std::list<PriceLvl>& best = isBid ? bids_ : asks_; // NOTICE! use reference!!!
             auto it = best.begin();
             for (; it != best.end() && (isBid ? it->price_ > order->price_ : it->price_ < order->price_); ++it);
-            if (it == best.end() || it->price_ != price) {
-                it = best.emplace(it, price);
+            if (it == best.end() || it->price_ != order->price_) {
+                it = best.emplace(it, order->price_);
             }
             it->orders_.push_back(order);
             orderMap_.emplace(order->id_, order);
         }
+        
+        auto addOrder(uint64_t id, Side side, OrderType type, uint64_t price, uint64_t qty) -> void {
+            Order* order = new Order(id, price, qty, side, type);
+            addOrder(order);
+        }
 
-        auto modOrder(uint64_t id, uint64_t qty) -> bool {
+        auto modOrder(uint64_t id, std::optional<Side> side, std::optional<uint64_t> price, std::optional<uint64_t> qty) -> bool {
             auto it = orderMap_.find(id);
             if (it == orderMap_.end()) return false;
-            it->second->qty_ = qty;
+            Order* order = it->second;
+            if (qty) order->qty_ = qty.value();
+
+            if (side || price) {
+                removeFromBook(order); // remove before modifying
+                if (side) order->side_ = side.value();
+                if (price) order->price_ = price.value();
+                addOrder(order);
+            }
             return true;
         }
 
@@ -123,6 +136,21 @@ namespace match {
                 if (topPrice.orders_.empty()) {
                     // empty price lvl
                     oppo.pop_front();
+                }
+            }
+        }
+        void removeFromBook(Order* order) {
+            orderMap_.erase(order->id_);
+            auto& book = order->side_ == Side::BID ? bids_ : asks_;
+            for (auto it = book.begin(); it != book.end(); ++it) {
+                if (it->price_ == order->price_) {
+                    for (auto oit = it->orders_.begin(); oit != it->orders_.end(); ++oit) {
+                        if ((*oit)->id_ == order->id_) {
+                            oit = it->orders_.erase(oit);
+                            break;
+                        }
+                    }
+                    break;
                 }
             }
         }

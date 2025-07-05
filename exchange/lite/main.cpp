@@ -4,9 +4,10 @@ int main() {
     match::OrderBook book;
     book.printTopOfBook();
     book.addOrder(1, match::Side::BID, match::OrderType::GFD, 1000, 10);
+    book.addOrder(111, match::Side::BID, match::OrderType::GFD, 1000, 2);
     book.addOrder(2, match::Side::ASK, match::OrderType::GFD, 1010, 10);
     book.printTopOfBook();
-    book.modOrder(1, 12);
+    book.modOrder(111, match::Side::ASK, 1001, 3);
     book.printTopOfBook();
     book.addOrder(3, match::Side::BID, match::OrderType::GFD, 1020, 15);
     book.printTopOfBook();
